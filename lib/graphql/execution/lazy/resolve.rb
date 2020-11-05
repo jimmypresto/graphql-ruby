@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+require 'byebug'
 module GraphQL
   module Execution
     class Lazy
@@ -37,7 +38,7 @@ module GraphQL
           else
             Lazy.new {
               acc.each_with_index { |ctx, idx|
-                acc[idx] = ctx.value.value
+                acc[idx] = ctx.value.value if ctx.value.respond_to?(:value)
               }
               resolve_in_place(acc)
             }

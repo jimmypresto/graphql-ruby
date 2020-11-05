@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 module GraphQL
   module Execution
     # A valid execution strategy
@@ -281,11 +282,29 @@ module GraphQL
                 field_ctx,
               )
             when GraphQL::TypeKinds::OBJECT
-              resolve_selection(
+              if field_type.to_s == "User"
+                user_cache = field_ctx.query.context[:user_cache] ||= {}
+                fragment_hash = field_ctx.irep_node.typed_children[field_type].keys.hash
+                cache_key = "#{value["id"]}_#{field_defn.name}_#{field_defn.type}_#{fragment_hash}"
+
+                hit = user_cache[cache_key]
+                if hit
+                  field_ctx.value = hit
+                  return hit
+                end
+              end
+
+              ret = resolve_selection(
                 value,
                 field_type,
                 field_ctx
               )
+
+              if user_cache && cache_key
+                user_cache[cache_key] = ret
+              end
+
+              ret
             when GraphQL::TypeKinds::UNION, GraphQL::TypeKinds::INTERFACE
               query = field_ctx.query
               resolved_type_or_lazy = field_type.resolve_type(value, field_ctx)
